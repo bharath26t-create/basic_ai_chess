@@ -109,7 +109,7 @@ class ChessAI {
                 String input = sc.nextLine().trim().toUpperCase();
 
                 if (!input.matches("[A-H][1-8] [A-H][1-8]")) {
-                    System.out.println("❌ Invalid format! Use like A2 A3.\n");
+                    System.out.println("Invalid format! Use like A2 A3.\n");
                     continue;
                 }
 
@@ -119,7 +119,7 @@ class ChessAI {
                 int ey = input.charAt(3) - 'A';
 
                 if (!tryMove(sx, sy, ex, ey)) {
-                    System.out.println("❌ Invalid move, try again.\n");
+                    System.out.println("Invalid move, try again.\n");
                     continue;
                 }
             } else {
