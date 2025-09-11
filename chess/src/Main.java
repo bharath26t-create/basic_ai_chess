@@ -123,7 +123,7 @@ class ChessAI {
                     continue;
                 }
             } else {
-                System.out.println("🤖 AI (Black) is thinking...");
+                System.out.println(" AI (Black) is thinking...");
                 if (!makeAIMove()) {
                     System.out.println("AI has no moves. You win!");
                     break;
@@ -180,7 +180,7 @@ class ChessAI {
         int[] move = captures.isEmpty() ? moves.get(rand.nextInt(moves.size())) :
                 captures.get(rand.nextInt(captures.size()));
 
-        System.out.println("🤖 AI moves: " + toChessNotation(move[0], move[1]) +
+        System.out.println("AI moves: " + toChessNotation(move[0], move[1]) +
                 " → " + toChessNotation(move[2], move[3]) + "\n");
 
         board[move[2]][move[3]] = board[move[0]][move[1]];
