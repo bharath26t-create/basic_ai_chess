@@ -1,17 +1,16 @@
 import java.util.*;
 
 abstract class Piece {
-    String color; // "W" or "B"
-    String name;  // P, R, N, B, Q, K
+    String color;
+    String name;
 
     Piece(String color, String name) {
         this.color = color;
         this.name = name;
     }
 
-    abstract boolean isValidMove(int startX, int startY, int endX, int endY, Piece[][] board);
+    abstract boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board);
 
-    @Override
     public String toString() {
         return color + name;
     }
@@ -19,9 +18,8 @@ abstract class Piece {
 
 // ================= Pieces ===================
 class Pawn extends Piece {
-    Pawn(String color) { super(color, "P"); }
+    Pawn(String c) { super(c, "P"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         int dir = color.equals("W") ? -1 : 1;
         if (sy == ey && board[ex][ey] == null && ex == sx + dir) return true;
@@ -31,9 +29,8 @@ class Pawn extends Piece {
 }
 
 class Rook extends Piece {
-    Rook(String color) { super(color, "R"); }
+    Rook(String c) { super(c, "R"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         if (sx != ex && sy != ey) return false;
         int dx = Integer.compare(ex, sx), dy = Integer.compare(ey, sy);
@@ -47,9 +44,8 @@ class Rook extends Piece {
 }
 
 class Knight extends Piece {
-    Knight(String color) { super(color, "N"); }
+    Knight(String c) { super(c, "N"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         int dx = Math.abs(ex - sx), dy = Math.abs(ey - sy);
         return (dx == 2 && dy == 1) || (dx == 1 && dy == 2);
@@ -57,14 +53,13 @@ class Knight extends Piece {
 }
 
 class Bishop extends Piece {
-    Bishop(String color) { super(color, "B"); }
+    Bishop(String c) { super(c, "B"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         if (Math.abs(ex - sx) != Math.abs(ey - sy)) return false;
         int dx = Integer.compare(ex, sx), dy = Integer.compare(ey, sy);
         int x = sx + dx, y = sy + dy;
-        while (x != ex && y != ey) {
+        while (x != ex) {
             if (board[x][y] != null) return false;
             x += dx; y += dy;
         }
@@ -73,96 +68,98 @@ class Bishop extends Piece {
 }
 
 class Queen extends Piece {
-    Queen(String color) { super(color, "Q"); }
+    Queen(String c) { super(c, "Q"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         return new Rook(color).isValidMove(sx, sy, ex, ey, board) ||
-                new Bishop(color).isValidMove(sx, sy, ex, ey, board);
+               new Bishop(color).isValidMove(sx, sy, ex, ey, board);
     }
 }
 
 class King extends Piece {
-    King(String color) { super(color, "K"); }
+    King(String c) { super(c, "K"); }
 
-    @Override
     boolean isValidMove(int sx, int sy, int ex, int ey, Piece[][] board) {
         return Math.abs(ex - sx) <= 1 && Math.abs(ey - sy) <= 1;
     }
 }
 
-// ================= Main Chess Game ===================
-class ChessAI {
+// ================= Chess Game ===================
+public class ChessAI {
+
     private static Piece[][] board = new Piece[8][8];
-    private static String turn = "W"; // White starts
-    private static Random rand = new Random();
+    private static String turn = "W";
 
     public static void main(String[] args) {
+
         setupBoard();
         Scanner sc = new Scanner(System.in);
 
         while (true) {
+
             printBoard();
 
             if (turn.equals("W")) {
-                System.out.print("Your move (e.g., A2 A3): ");
-                String input = sc.nextLine().trim().toUpperCase();
+                System.out.print("Your move (A2 A3): ");
+                String in = sc.nextLine().toUpperCase();
 
-                if (!input.matches("[A-H][1-8] [A-H][1-8]")) {
-                    System.out.println("Invalid format! Use like A2 A3.\n");
-                    continue;
-                }
+                int sx = 8 - Character.getNumericValue(in.charAt(1));
+                int sy = in.charAt(0) - 'A';
+                int ex = 8 - Character.getNumericValue(in.charAt(4));
+                int ey = in.charAt(3) - 'A';
 
-                int sx = 8 - Character.getNumericValue(input.charAt(1));
-                int sy = input.charAt(0) - 'A';
-                int ex = 8 - Character.getNumericValue(input.charAt(4));
-                int ey = input.charAt(3) - 'A';
+                if (!tryMove(sx, sy, ex, ey)) continue;
 
-                if (!tryMove(sx, sy, ex, ey)) {
-                    System.out.println("Invalid move, try again.\n");
-                    continue;
-                }
             } else {
-                System.out.println(" AI (Black) is thinking...");
-                if (!makeAIMove()) {
-                    System.out.println("AI has no moves. You win!");
-                    break;
-                }
-            }
-
-            if (isKingCaptured()) {
-                printBoard();
-                System.out.println((turn.equals("W") ? "Black (AI)" : "White (You)") + " wins!");
-                break;
+                System.out.println("AI thinking...");
+                makeAIMove();
             }
 
             turn = turn.equals("W") ? "B" : "W";
         }
-        sc.close();
     }
 
-    private static boolean tryMove(int sx, int sy, int ex, int ey) {
-        Piece piece = board[sx][sy];
-        if (piece == null || !piece.color.equals(turn)) return false;
-        if (piece.isValidMove(sx, sy, ex, ey, board)) {
-            board[ex][ey] = piece;
-            board[sx][sy] = null;
+    // ================= Move ===================
+    static boolean tryMove(int sx,int sy,int ex,int ey){
+        Piece p = board[sx][sy];
+        if(p==null || !p.color.equals(turn)) return false;
+        if(board[ex][ey]!=null && board[ex][ey].color.equals(turn)) return false;
+
+        if(p.isValidMove(sx,sy,ex,ey,board)){
+            board[ex][ey]=p;
+            board[sx][sy]=null;
             return true;
         }
         return false;
     }
 
-    // ================= Simple AI ===================
-    private static boolean makeAIMove() {
-        List<int[]> moves = new ArrayList<>();
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                Piece p = board[i][j];
-                if (p != null && p.color.equals("B")) {
-                    for (int x = 0; x < 8; x++) {
-                        for (int y = 0; y < 8; y++) {
-                            if (p.isValidMove(i, j, x, y, board)) {
-                                moves.add(new int[]{i, j, x, y});
+    // ================= MINIMAX AI ===================
+    static boolean makeAIMove(){
+
+        int bestScore=Integer.MIN_VALUE;
+        int[] bestMove=null;
+
+        for(int i=0;i<8;i++){
+            for(int j=0;j<8;j++){
+                Piece p=board[i][j];
+                if(p!=null && p.color.equals("B")){
+                    for(int x=0;x<8;x++){
+                        for(int y=0;y<8;y++){
+                            if(p.isValidMove(i,j,x,y,board)){
+
+                                Piece cap=board[x][y];
+                                board[x][y]=p;
+                                board[i][j]=null;
+
+                                int score=minimax(2,false);
+
+                                board[i][j]=p;
+                                board[x][y]=cap;
+
+                                if(score>bestScore){
+                                    bestScore=score;
+                                    bestMove=new int[]{i,j,x,y};
+                                }
                             }
                         }
                     }
@@ -170,69 +167,84 @@ class ChessAI {
             }
         }
 
-        if (moves.isEmpty()) return false;
+        board[bestMove[2]][bestMove[3]]=board[bestMove[0]][bestMove[1]];
+        board[bestMove[0]][bestMove[1]]=null;
 
-        List<int[]> captures = new ArrayList<>();
-        for (int[] m : moves) {
-            if (board[m[2]][m[3]] != null) captures.add(m);
-        }
-
-        int[] move = captures.isEmpty() ? moves.get(rand.nextInt(moves.size())) :
-                captures.get(rand.nextInt(captures.size()));
-
-        System.out.println("AI moves: " + toChessNotation(move[0], move[1]) +
-                " → " + toChessNotation(move[2], move[3]) + "\n");
-
-        board[move[2]][move[3]] = board[move[0]][move[1]];
-        board[move[0]][move[1]] = null;
+        System.out.println("AI moved.\n");
         return true;
     }
 
-    private static boolean isKingCaptured() {
-        boolean whiteKing = false, blackKing = false;
-        for (Piece[] row : board) {
-            for (Piece p : row) {
-                if (p instanceof King) {
-                    if (p.color.equals("W")) whiteKing = true;
-                    if (p.color.equals("B")) blackKing = true;
+    static int minimax(int depth, boolean max){
+        if(depth==0) return evaluate();
+
+        int best=max?Integer.MIN_VALUE:Integer.MAX_VALUE;
+
+        for(int i=0;i<8;i++){
+            for(int j=0;j<8;j++){
+                Piece p=board[i][j];
+                if(p!=null && ((max && p.color.equals("B"))||(!max && p.color.equals("W")))){
+                    for(int x=0;x<8;x++){
+                        for(int y=0;y<8;y++){
+                            if(p.isValidMove(i,j,x,y,board)){
+                                Piece cap=board[x][y];
+                                board[x][y]=p;
+                                board[i][j]=null;
+
+                                int val=minimax(depth-1,!max);
+
+                                board[i][j]=p;
+                                board[x][y]=cap;
+
+                                best=max?Math.max(best,val):Math.min(best,val);
+                            }
+                        }
+                    }
                 }
             }
         }
-        return !(whiteKing && blackKing);
+        return best;
     }
 
-    private static void setupBoard() {
-        for (int i = 0; i < 8; i++) {
-            board[1][i] = new Pawn("B");
-            board[6][i] = new Pawn("W");
-        }
-        board[0][0] = new Rook("B"); board[0][7] = new Rook("B");
-        board[7][0] = new Rook("W"); board[7][7] = new Rook("W");
-
-        board[0][1] = new Knight("B"); board[0][6] = new Knight("B");
-        board[7][1] = new Knight("W"); board[7][6] = new Knight("W");
-
-        board[0][2] = new Bishop("B"); board[0][5] = new Bishop("B");
-        board[7][2] = new Bishop("W"); board[7][5] = new Bishop("W");
-
-        board[0][3] = new Queen("B"); board[7][3] = new Queen("W");
-
-        board[0][4] = new King("B"); board[7][4] = new King("W");
-    }
-
-    private static void printBoard() {
-        System.out.println("\n    A    B    C    D    E    F    G    H");
-        for (int i = 0; i < 8; i++) {
-            System.out.print((8 - i) + "  ");
-            for (int j = 0; j < 8; j++) {
-                System.out.printf("%-3s ", board[i][j] == null ? "--" : board[i][j]);
+    static int evaluate(){
+        int score=0;
+        for(Piece[] r:board){
+            for(Piece p:r){
+                if(p!=null){
+                    int v=switch(p.name){
+                        case "P"->1;
+                        case "N","B"->3;
+                        case "R"->5;
+                        case "Q"->9;
+                        case "K"->100;
+                        default->0;
+                    };
+                    score+=p.color.equals("B")?v:-v;
+                }
             }
-            System.out.println(" " + (8 - i));
         }
-        System.out.println("    A    B    C    D    E    F    G    H\n");
+        return score;
     }
 
-    private static String toChessNotation(int x, int y) {
-        return "" + (char) ('A' + y) + (8 - x);
+    // ================= Board ===================
+    static void setupBoard(){
+        for(int i=0;i<8;i++){ board[1][i]=new Pawn("B"); board[6][i]=new Pawn("W"); }
+        board[0][0]=new Rook("B"); board[0][7]=new Rook("B");
+        board[7][0]=new Rook("W"); board[7][7]=new Rook("W");
+        board[0][1]=new Knight("B"); board[0][6]=new Knight("B");
+        board[7][1]=new Knight("W"); board[7][6]=new Knight("W");
+        board[0][2]=new Bishop("B"); board[0][5]=new Bishop("B");
+        board[7][2]=new Bishop("W"); board[7][5]=new Bishop("W");
+        board[0][3]=new Queen("B"); board[7][3]=new Queen("W");
+        board[0][4]=new King("B"); board[7][4]=new King("W");
+    }
+
+    static void printBoard(){
+        System.out.println("\n   A  B  C  D  E  F  G  H");
+        for(int i=0;i<8;i++){
+            System.out.print((8-i)+" ");
+            for(int j=0;j<8;j++)
+                System.out.print((board[i][j]==null?"--":board[i][j])+" ");
+            System.out.println();
+        }
     }
 }
